@@ -78,12 +78,11 @@
 /** USB Device initialization function. */
 void MX_USB_DEVICE_Init(void);
 
-/*
- * -- Insert functions declaration here --
- */
-/* USER CODE BEGIN FD */
+uint8_t usb_device_write(uint8_t* buff, uint32_t len);
 
-/* USER CODE END FD */
+uint8_t usb_device_read(uint8_t* buff, uint32_t* len, uint32_t max_len);
+
+
 /**
   * @}
   */
