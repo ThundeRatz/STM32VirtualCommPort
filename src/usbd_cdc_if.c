@@ -78,7 +78,7 @@ typedef struct circular_fifo {
   */
 /* Create buffer for reception and transmission           */
 /* It's up to user to redefine and/or remove those define */
-/** Received data over USB are stored in this buffer      */
+uint8_t UserTxBufferFS[APP_TX_DATA_SIZE];
 uint8_t UserRxBufferFS[APP_RX_DATA_SIZE];
 
 static uint8_t rx_in_callback = 0;
@@ -148,8 +148,11 @@ static int8_t CDC_Init_FS(void)
 {
   /* USER CODE BEGIN 3 */
   /* Set Application Buffers */
+
+//! @todo Precisa disso?
   USBD_CDC_SetTxBuffer(&hUsbDeviceFS, UserTxBufferFS, 0);
   USBD_CDC_SetRxBuffer(&hUsbDeviceFS, UserRxBufferFS);
+
   return (USBD_OK);
   /* USER CODE END 3 */
 }
