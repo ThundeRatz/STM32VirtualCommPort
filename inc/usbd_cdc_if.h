@@ -88,15 +88,6 @@
   * @{
   */
 
-/** Received data over USB are stored in this buffer      */
-extern uint8_t UserRxBufferFS[APP_RX_DATA_SIZE];
-extern uint32_t rx_buffer_size;
-extern uint8_t rx_data_available;
-
-/** Data to send over USB CDC are stored in this buffer   */
-extern uint8_t UserTxBufferFS[APP_TX_DATA_SIZE];
-extern uint32_t tx_buffer_size;
-
 /** CDC Interface callback. */
 extern USBD_CDC_ItfTypeDef USBD_Interface_fops_FS;
 
