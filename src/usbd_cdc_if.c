@@ -257,19 +257,50 @@ static int8_t CDC_Control_FS(uint8_t cmd, uint8_t* pbuf, uint16_t length)
   */
 static int8_t CDC_Receive_FS(uint8_t* Buf, uint32_t *Len)
 {
-  /* USER CODE BEGIN 6 */
-  uint8_t result = USBD_OK;
-  USBD_CDC_SetRxBuffer(&hUsbDeviceFS, &Buf[0]);
-  result = USBD_CDC_ReceivePacket(&hUsbDeviceFS);
-
+    // printf("Entre aqui");
+    rx_in_callback = 1;
+    uint8_t result = USBD_OK;
+    result = USBD_CDC_SetRxBuffer(&hUsbDeviceFS, &Buf[0]);
     if (result == USBD_OK) {
-        rx_buffer_size = (APP_RX_DATA_SIZE >= *Len) ? (*Len) : (APP_RX_DATA_SIZE);
-        memcpy (UserRxBufferFS, Buf, rx_buffer_size);
-        rx_data_available = 1;
+        result = USBD_CDC_ReceivePacket(&hUsbDeviceFS);
     }
 
-  return result;
-  /* USER CODE END 6 */
+    if (result == USBD_OK) {
+        uint32_t count = min(APP_RX_DATA_SIZE, *Len);
+        while (count > 0) {
+            if(is_fifo_full(rx_fifo)) {
+                rx_fifo.tail = FIFO_INCR(rx_fifo.tail);
+                result = USBD_FAIL;
+            }
+            rx_fifo.buffer[rx_fifo.head] = *Buf++;
+            rx_fifo.head = FIFO_INCR(rx_fifo.head);
+            count--;
+        }
+    }
+    rx_in_callback = 0;
+    return result;
+}
+
+uint8_t usbd_cdc_if_read(uint8_t* buf, uint32_t* len, uint32_t max_len) {
+    if (is_fifo_empty(rx_fifo)) {
+        return 3;
+    }
+    if (rx_in_callback) {
+        while (rx_in_callback);
+        //! @todo TIMEOUT
+    }
+    uint32_t count = min(get_fifo_size(rx_fifo), max_len);
+    *len = count;
+    while (count > 0) {
+        if(is_fifo_empty(rx_fifo)) {
+            return 4;
+        }
+        *buf++ = rx_fifo.buffer[rx_fifo.tail];
+        rx_fifo.tail = FIFO_INCR(rx_fifo.tail);
+        count--;
+    }
+
+    return 0;
 }
 
 /**
