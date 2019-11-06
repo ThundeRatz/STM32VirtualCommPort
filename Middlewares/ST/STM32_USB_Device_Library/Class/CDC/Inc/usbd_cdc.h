@@ -59,6 +59,8 @@ extern "C" {
 #define CDC_CMD_PACKET_SIZE                         8U  /* Control Endpoint Packet size */
 
 #define USB_CDC_CONFIG_DESC_SIZ                     67U
+
+//! @todo Ver esses parametro e configurar de acordo com aplicação
 #define CDC_DATA_HS_IN_PACKET_SIZE                  CDC_DATA_HS_MAX_PACKET_SIZE
 #define CDC_DATA_HS_OUT_PACKET_SIZE                 CDC_DATA_HS_MAX_PACKET_SIZE
 
