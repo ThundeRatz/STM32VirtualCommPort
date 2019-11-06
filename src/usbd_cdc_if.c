@@ -1,4 +1,3 @@
-/* USER CODE BEGIN Header */
 /**
   ******************************************************************************
   * @file           : usbd_cdc_if.c
@@ -17,23 +16,10 @@
   *
   ******************************************************************************
   */
-/* USER CODE END Header */
 
 /* Includes ------------------------------------------------------------------*/
 #include "usbd_cdc_if.h"
 
-/* USER CODE BEGIN INCLUDE */
-
-/* USER CODE END INCLUDE */
-
-/* Private typedef -----------------------------------------------------------*/
-/* Private define ------------------------------------------------------------*/
-/* Private macro -------------------------------------------------------------*/
-
-/* USER CODE BEGIN PV */
-/* Private variables ---------------------------------------------------------*/
-
-/* USER CODE END PV */
 
 /** @addtogroup STM32_USB_OTG_DEVICE_LIBRARY
   * @brief Usb device library.
@@ -49,9 +35,11 @@
   * @{
   */
 
-/* USER CODE BEGIN PRIVATE_TYPES */
-
-/* USER CODE END PRIVATE_TYPES */
+typedef struct circular_fifo {
+    uint8_t* buffer;
+    uint32_t head;
+    uint32_t tail;
+} circular_fifo_t;
 
 /**
   * @}
@@ -77,9 +65,8 @@
   * @{
   */
 
-/* USER CODE BEGIN PRIVATE_MACRO */
-
-/* USER CODE END PRIVATE_MACRO */
+#define FIFO_INCR(x) ((x+1) >= APP_TX_DATA_SIZE) ? (0) : (x+1)
+#define min(x,y) (x > y) ? (y) : (x)
 
 /**
   * @}
@@ -93,16 +80,15 @@
 /* It's up to user to redefine and/or remove those define */
 /** Received data over USB are stored in this buffer      */
 uint8_t UserRxBufferFS[APP_RX_DATA_SIZE];
-uint32_t rx_buffer_size = 0;
-uint8_t rx_data_available = 0;
 
-/** Data to send over USB CDC are stored in this buffer   */
-uint8_t UserTxBufferFS[APP_TX_DATA_SIZE];
-uint32_t tx_buffer_size = 0;
+static uint8_t rx_in_callback = 0;
 
-/* USER CODE BEGIN PRIVATE_VARIABLES */
-
-/* USER CODE END PRIVATE_VARIABLES */
+/** Received data over USB are stored in this buffer      */
+static circular_fifo_t rx_fifo = {
+    .buffer = (uint8_t[APP_RX_DATA_SIZE]) { 0 },
+    .head = 0,
+    .tail = 0,
+};
 
 /**
   * @}
@@ -132,6 +118,10 @@ static int8_t CDC_Init_FS(void);
 static int8_t CDC_DeInit_FS(void);
 static int8_t CDC_Control_FS(uint8_t cmd, uint8_t* pbuf, uint16_t length);
 static int8_t CDC_Receive_FS(uint8_t* pbuf, uint32_t *Len);
+
+static uint8_t is_fifo_full(circular_fifo_t fifo);
+static uint8_t is_fifo_empty(circular_fifo_t fifo);
+static uint32_t get_fifo_size(circular_fifo_t fifo);
 
 /* USER CODE BEGIN PRIVATE_FUNCTIONS_DECLARATION */
 
@@ -293,20 +283,40 @@ static int8_t CDC_Receive_FS(uint8_t* Buf, uint32_t *Len)
 uint8_t CDC_Transmit_FS(uint8_t* Buf, uint16_t Len)
 {
   uint8_t result = USBD_OK;
-  /* USER CODE BEGIN 7 */
   USBD_CDC_HandleTypeDef *hcdc = (USBD_CDC_HandleTypeDef*)hUsbDeviceFS.pClassData;
   if (hcdc->TxState != 0){
     return USBD_BUSY;
   }
   USBD_CDC_SetTxBuffer(&hUsbDeviceFS, Buf, Len);
   result = USBD_CDC_TransmitPacket(&hUsbDeviceFS);
-  /* USER CODE END 7 */
   return result;
 }
 
-/* USER CODE BEGIN PRIVATE_FUNCTIONS_IMPLEMENTATION */
 
-/* USER CODE END PRIVATE_FUNCTIONS_IMPLEMENTATION */
+uint8_t is_fifo_full(circular_fifo_t fifo) {
+    if (FIFO_INCR(fifo.head) == fifo.tail) {
+        return 1;
+    }
+    return 0;
+}
+
+uint8_t is_fifo_empty(circular_fifo_t fifo) {
+    if (fifo.head == fifo.tail) {
+        return 1;
+    }
+    return 0;
+}
+
+uint32_t get_fifo_size(circular_fifo_t fifo) {
+    if (fifo.head > fifo.tail) {
+        return (fifo.head - fifo.tail);
+    } else if (fifo.tail > fifo.head) {
+        return fifo.head + (APP_RX_DATA_SIZE - fifo.tail);
+    } else {
+        return 0;
+    }
+}
+
 
 /**
   * @}
